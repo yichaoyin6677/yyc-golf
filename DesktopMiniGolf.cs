@@ -38,10 +38,15 @@ namespace DesktopMiniGolf
                     {
                         bool painted = false;
                         form.Paint += delegate { painted = true; };
+                        // CI launches helpers hidden. Exercise the actual renderer explicitly,
+                        // then run the normal message loop and timed window close.
+                        form.CreateControl();
+                        using (Bitmap preview = new Bitmap(form.ClientSize.Width, form.ClientSize.Height))
+                            form.DrawToBitmap(preview, new Rectangle(Point.Empty, form.ClientSize));
+                        if (!painted) throw new InvalidOperationException("The main window did not render.");
                         closeTimer.Interval = 1200;
                         closeTimer.Tick += delegate { closeTimer.Stop(); form.Close(); };
                         closeTimer.Start(); Application.Run(form);
-                        if (!painted) throw new InvalidOperationException("The main window did not paint.");
                     }
                 }
                 catch (Exception e)

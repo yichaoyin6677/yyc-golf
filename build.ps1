@@ -27,6 +27,6 @@ if ($SmokeTest) {
         if (Test-Path -LiteralPath $smokeReport) { Get-Content -LiteralPath $smokeReport }
         throw 'GUI smoke test failed'
     }
-    Write-Output 'PASS Windows native window startup, paint and close'
+    Write-Output 'PASS Windows native window initialization, offscreen rendering and message loop'
 }
 Get-Item -LiteralPath $targetExe | Select-Object FullName, Length
