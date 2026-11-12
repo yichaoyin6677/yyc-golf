@@ -67,6 +67,7 @@ namespace DesktopMiniGolf
                 double speed = Math.Sqrt(2 * 165 * delta.Length);
                 p.Shoot(delta.Unit * (speed / Physics.Power)); p.Step(7);
                 Check(p.Potted && p.Strokes == 1, "Opening hole can be completed with a calibrated single putt");
+                HolePowerControl();
                 DesktopInventory();
             }
             catch (Exception e) { output.AppendLine(e.ToString()); failed++; }
@@ -80,6 +81,38 @@ namespace DesktopMiniGolf
             foreach (Block b in c.Blocks) { RectangleF r = b.Rect; r.Inflate(13, 13); if (r.Contains(x, y)) return false; }
             foreach (Zone z in c.Zones) if (z.Water) { RectangleF r = z.Rect; r.Inflate(13, 13); if (r.Contains(x, y)) return false; }
             return true;
+        }
+        static Physics StraightPutt(double strength, double frameTime)
+        {
+            Course c = Empty(); c.Start = new V(300, 300); c.Hole = new V(500, 300);
+            Physics p = new Physics(c);
+            V distance = c.Hole - c.Start;
+            double calibratedPull = Math.Sqrt(2 * 165 * distance.Length) / Physics.Power;
+            p.Shoot(distance.Unit * (calibratedPull * strength));
+            for (double elapsed = 0; elapsed < 6; elapsed += frameTime) p.Step(frameTime);
+            return p;
+        }
+        static void HolePowerControl()
+        {
+            Physics correct = StraightPutt(1, 1.0 / 60);
+            Check(correct.Potted && correct.Strokes == 1, "Correct aim and calibrated strength still sink a putt");
+            Physics strong = StraightPutt(1.12, 1.0 / 60);
+            Check(!strong.Potted && !strong.Moving && strong.Ball.X > strong.Course.Hole.X + 20, "Same aim with 12 percent excess strength rolls across the hole and stops beyond it");
+            Physics weak = StraightPutt(.94, 1.0 / 60);
+            Check(!weak.Potted && !weak.Moving && weak.Ball.X < weak.Course.Hole.X - 15, "Same aim with insufficient strength stops short without attraction");
+
+            Course c = Empty(); c.Hole = new V(500, 300);
+            Physics p = new Physics(c); p.Ball = new V(460, 300); p.Velocity = new V(200, 0); p.Step(.5);
+            Check(!p.Potted && p.Ball.X > 520, "Moderately overhit putt crosses the opening instead of being auto-captured");
+            p = new Physics(c); p.Ball = new V(470, 316); p.Velocity = new V(150, 0); p.Step(2);
+            Check(!p.Potted && p.Ball.X > 520, "Slow putt grazing outside the opening is not snapped into the hole");
+            p = new Physics(c); p.Ball = new V(470, 300); p.Velocity = new V(10, 0); p.Step(.1);
+            Check(!p.Potted && !p.Moving && p.Ball.X < 471, "Near-hole rolling obeys normal friction without magnetic pull");
+            foreach (double frameTime in new double[] { 1.0 / 30, 1.0 / 144, .04 })
+            {
+                correct = StraightPutt(1, frameTime); strong = StraightPutt(1.12, frameTime); weak = StraightPutt(.94, frameTime);
+                Check(correct.Potted && !strong.Potted && strong.Ball.X > 520 && !weak.Potted && weak.Ball.X < 485, "Strength outcome stays consistent at frame interval " + frameTime.ToString("F4"));
+            }
         }
         static void DesktopInventory()
         {

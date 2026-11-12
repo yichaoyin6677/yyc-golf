@@ -53,7 +53,7 @@ namespace DesktopMiniGolf
         public static List<Course> Create()
         {
             List<Course> all = new List<Course>();
-            Course c = new Course("提前下班", "FIRST THINGS FIRST", "从球上往后拖，松手击球。轻一点，也能走很远。", 2, new V(150, 355), new V(930, 300));
+            Course c = new Course("提前下班", "FIRST THINGS FIRST", "方向对了也要控力：打轻停在洞前，打重越过球洞。", 2, new V(150, 355), new V(930, 300));
             c.Icon(410, 130, 0); c.Icon(590, 440, 1); c.Icon(760, 110, 2); all.Add(c);
             c = new Course("绕开周报", "A LITTLE DETOUR", "周报挡住了直线。走上边，或者借一次墙壁反弹。", 3, new V(140, 340), new V(960, 310));
             c.Wall(420, 205, 145, 275, "周报_最终版"); c.Icon(600, 125, 3); c.Icon(735, 420, 4); all.Add(c);
@@ -71,7 +71,7 @@ namespace DesktopMiniGolf
 
         public static Course Desktop(int seed, int assets)
         {
-            Course c = new Course("我的桌面球场", "YOUR DESKTOP, YOUR COURSE", "熟悉的图标，新的路线。右上角可以重新生成球场。", 4, new V(120, 410), new V(1000, 200));
+            Course c = new Course("我的桌面球场", "YOUR DESKTOP, YOUR COURSE", "瞄准后也要控力，打重会越过球洞。右上角可刷新图标。", 4, new V(120, 410), new V(1000, 200));
             Random r = new Random(seed);
             for (int i = 0; i < 11; i++)
             {
@@ -88,6 +88,9 @@ namespace DesktopMiniGolf
     public class Physics
     {
         public const double Radius = 10, MaxPull = 150, Power = 5.2;
+        // The hole accepts a slow roll across its opening. A fast ball rolls over it.
+        // These are world-space units, independent of window size and aim assistance.
+        public const double HoleCaptureRadius = 10, HoleMaxCaptureSpeed = 100;
         public Course Course;
         public V Ball, Velocity, LastShot;
         public int Strokes, WaterCount, Bounces;
@@ -130,11 +133,8 @@ namespace DesktopMiniGolf
                 }
                 friction = 650;
             }
-            V toHole = Course.Hole - Ball;
-            if (toHole.Length < 23 && Velocity.Length < 300)
+            if ((Course.Hole - Ball).Length <= HoleCaptureRadius && Velocity.Length <= HoleMaxCaptureSpeed)
             { Ball = Course.Hole; Velocity = new V(); Potted = true; return; }
-            if (toHole.Length < 43 && Velocity.Length < 180)
-                Velocity += toHole.Unit * (150 * dt);
             double speed = Velocity.Length;
             double next = Math.Max(0, speed - friction * dt);
             Velocity = next < 7 ? new V() : Velocity.Unit * next;
