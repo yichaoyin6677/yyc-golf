@@ -1,0 +1,9 @@
+dist/
+bin/
+obj/
+.vs/
+*.pdb
+self-test.txt
+smoke-test.txt
+Thumbs.db
+Desktop.ini
